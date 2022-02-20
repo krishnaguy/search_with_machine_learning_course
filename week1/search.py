@@ -19,6 +19,7 @@ def process_filters(filters_input):
     filters = []
     display_filters = []  # Also create the text we will use to display the filters that are applied
     applied_filters = ""
+    print("FILTER INPUT: {}".format(filters_input))
     for filter in filters_input:
         type = request.args.get(filter + ".type")
         display_name = request.args.get(filter + ".displayName", filter)
@@ -29,9 +30,59 @@ def process_filters(filters_input):
         #TODO: IMPLEMENT AND SET filters, display_filters and applied_filters.
         # filters get used in create_query below.  display_filters gets used by display_filters.jinja2 and applied_filters gets used by aggregations.jinja2 (and any other links that would execute a search.)
         if type == "range":
-            pass
+            key = request.args.get(filter+".key", filter)
+            range_from = request.args.get(filter+".from", filter)
+            range_to = request.args.get(filter+".to", filter)
+            applied_filters += "&{}.key={}&{}.from={}&{}.to={}".format(filter, key, filter, range_from, filter, range_to)
+            print("Applied Filters: {}".format(applied_filters))
+            print("Filter: {}".format(filter))
+            print("Key: {}, from: {},  to: {}".format(key, range_from, range_to))
+            if range_from == '' and range_to == '':
+                pass
+            elif range_from == '':
+                display_filters.append("{} < {}".format(display_name, range_to))
+                new_filter = {
+                    "range": {
+                        filter: {
+                             "lt": range_to
+                        }
+                       
+                    }
+                }
+            elif range_to == '':
+                display_filters.append("{} >= {}".format(display_name, range_from))
+                new_filter = {
+                    "range": {
+                        filter: {
+                            "gte": range_from
+                        }
+                    }
+                }
+            else:
+                display_filters.append("{} >= {} and < {}".format(display_name, range_from, range_to))
+                new_filter = { 
+                    "range": {
+                        filter: {
+                            "gte": range_from,
+                            "lt": range_to
+                        }
+                    }
+                }
+            filters.append(new_filter)
         elif type == "terms":
-            pass #TODO: IMPLEMENT
+            key = request.args.get(filter+".key", filter)
+            applied_filters += "&{}.key={}".format(filter, key)
+            print("Applied Filters: {}".format(applied_filters))
+            print("Filter: {}".format(filter))
+            display_filters.append("{} is {}".format(display_name, key))
+            new_filter = {
+                "term": {
+                    filter+".keyword": key
+
+                }
+            }
+            filters.append(new_filter)
+             #TODO: IMPLEMENT
     print("Filters: {}".format(filters))
 
     return filters, display_filters, applied_filters
@@ -74,7 +125,7 @@ def query():
         query_obj = create_query("*", [], sort, sortDir)
 
     print("query obj: {}".format(query_obj))
-    response = None   # TODO: Replace me with an appropriate call to OpenSearch
+    response = opensearch.search(body=query_obj, index="bbuy_products")  # TODO: Replace me with an appropriate call to OpenSearch
     # Postprocess results here if you so desire
 
     #print(response)
@@ -90,11 +141,53 @@ def create_query(user_query, filters, sort="_score", sortDir="desc"):
     print("Query: {} Filters: {} Sort: {}".format(user_query, filters, sort))
     query_obj = {
         'size': 10,
+        "sort": [
+            { sort: { "order": sortDir}}
+
+        ],
         "query": {
-            "match_all": {} # Replace me with a query that both searches and filters
+            "bool": {
+                "must": [
+                    { "query_string": {
+                        "query": user_query
+                        }
+                    }
+
+                ],
+                "filter": filters
+            }
+            
+            #"match_all": {} # Replace me with a query that both searches and filters
         },
         "aggs": {
+            "department": {
+                "terms": {
+                    "field": "department.keyword",
+                    "size": 10,
+                    "missing": "N/A",
+                    "min_doc_count": 0
+                }
+            },
+            "regularPrice": {
+                "range": {
+                    "field": "regularPrice",
+                    "ranges": [
+                        {
+                            "to": 100
+                        },
+                        {
+                            "from": 100
+                        }
+                    ]
+                }
+            },
+            "missing_images": {
+                "missing": {
+                    "field": "image.keyword"
+                }
+            }
             #TODO: FILL ME IN
-        }
+        },
+        
     }
     return query_obj
