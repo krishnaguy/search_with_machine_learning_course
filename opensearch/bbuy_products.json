@@ -194,13 +194,7 @@
         },
         "longDescription" : {
           "type" : "text",
-          "analyzer": "std_w_porter",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
+          "analyzer": "std_w_porter"
         },
         "longDescriptionHtml" : {
           "type" : "text",
@@ -301,22 +295,11 @@
         },
         "shortDescription" : {
           "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
+          "analyzer": "std_w_porter"
         },
         "shortDescriptionHtml" : {
           "type" : "text",
-          "analyzer": "std_w_porter",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          }
+          "analyzer": "std_w_porter"
         },
         "sku" : {
           "type" : "text",
