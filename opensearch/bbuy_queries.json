@@ -27,7 +27,8 @@
         }
       },
       "click_time" : {
-        "type" : "date"
+        "type" : "date",
+        "format": "yyyy-MM-dd[T]HH:mm:ss.[SSS][SS][S][Z]"
       },
       "query" : {
         "type" : "text",
@@ -39,7 +40,8 @@
         }
       },
       "query_time" : {
-        "type" : "date"
+        "type" : "date",
+        "format": "yyyy-MM-dd[T]HH:mm:ss.[SSS][SS][S][Z]" 
       },
       "sku" : {
         "type" : "text",
