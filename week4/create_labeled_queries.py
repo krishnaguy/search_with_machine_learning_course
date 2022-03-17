@@ -4,9 +4,11 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import numpy as np
 import csv
+import string
 
 # Useful if you want to perform stemming.
 import nltk
+from nltk.tokenize import word_tokenize
 stemmer = nltk.stem.PorterStemmer()
 
 categories_file_name = r'/workspace/datasets/product_data/categories/categories_0001_abcat0010000_to_pcmcat99300050000.xml'
@@ -47,6 +49,30 @@ parents_df = pd.DataFrame(list(zip(categories, parents)), columns =['category', 
 # Read the training data into pandas, only keeping queries with non-root categories in our category tree.
 df = pd.read_csv(queries_file_name)[['category', 'query']]
 df = df[df['category'].isin(categories)]
+
+def transform_query(query):
+    # IMPLEMENT
+    query = query.translate(str.maketrans('', '', string.punctuation))
+    return  " ".join(stemmer.stem(tok.lower()) for tok in word_tokenize(query))
+
+def aggregate_to_parent(df: pd.DataFrame, min_queries: int, parents_df: pd.DataFrame) -> pd.DataFrame:
+    df1 = df.copy()
+    val_counts = df1['category'].value_counts()
+    count = 0
+    while (val_counts < min_queries).sum() > 0:
+        df1 = pd.merge(df1, val_counts, how="left", left_on="category", right_index=True).rename(columns={'category_x': "category", "category_y": "val_counts"})
+        df1 = pd.merge(df1, parents_df, how="left", on="category")
+        df1.loc[df1.val_counts < min_queries, 'category'] = df1.loc[df1.val_counts < min_queries, 'parent']
+        df1 = df1.drop(['val_counts', 'parent'], axis=1)
+        val_counts = df1['category'].value_counts()
+        count += 1
+        if(count > 20):
+            break
+    if count > 20:
+        print("Something went wrong")
+    return df1 
+df['query'] = df['query'].apply(transform_query)
+df = aggregate_to_parent(df, min_queries=min_queries, parents_df=parents_df)
 
 # IMPLEMENT ME: Convert queries to lowercase, and optionally implement other normalization, like stemming.
 
